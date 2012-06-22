@@ -217,11 +217,11 @@ globalkeys = awful.util.table.join(
 	    awful.tag.viewnext()
 	end),
 -- Left hand bindings for desktop switch.
-    awful.key({ modkey,        }, "q",   
+    awful.key({ modkey,        }, "w",   
         function ()
 	    awful.tag.viewprev()
 	end),
-    awful.key({ modkey,        }, "w",  
+    awful.key({ modkey,        }, "e",  
         function ()
 	    awful.tag.viewnext()
 	end),
