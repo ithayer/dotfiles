@@ -114,6 +114,8 @@ alias gpush='git push origin master'
 alias gd='git diff'
 alias gpull='git pull origin master'
 
+alias gpl='git pull'
+alias gps='git push'
 
 alias _GS=gs
 alias _GC=gc
