@@ -1,0 +1,4 @@
+# name : format
+# key : ..f
+# --
+u"${string}".format(${})

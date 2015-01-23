@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: formatvars
+# key: ..lf
+# --
+u"${1:$(python-split-commas-into-fields yas/text)}".format(${1:})$0
