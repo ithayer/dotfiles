@@ -8,8 +8,10 @@
 
 (defun lg--do-log (type time xs)
   (with-current-buffer (get-buffer-create lg--buffer)
-    (insert (format "[%6s] %s: %s\n" type time (apply #'lg--str xs)))
+    (end-of-buffer)
+    (insert (format "[%9s] %s: %s\n" type time (apply #'lg--str xs)))
     (let ((w (car (get-buffer-window-list (current-buffer)))))
+      (end-of-buffer)
       (set-window-point w (window-end w)))
     ))
 
@@ -18,6 +20,9 @@
 
 (defun lg/info (&rest xs)
   (lg--do-log "INFO" (lg--now) xs))
+
+(defun lg/exception (&rest xs)
+  (lg--do-log "EXCEPTION" (lg--now) xs))
 
 (defun lg/set-local-buffer (n)
   "Set the logging buffer for a buffer."
@@ -29,6 +34,16 @@
     `(let ((e* (progn ,x)))
        (lg--do-log "SPY" (lg--now) (list (format "%s => %s" ,s* e*)))
        e*)))
+
+(defmacro lg/logging-errors (safe-return &rest x)
+  `(unwind-protect
+       (let (retval)
+         (condition-case ex
+             (setq retval ,(lg/spy (cons 'progn x)))
+           ('error
+            (lg/exception (format "Caught exception: [%s]" ex))
+            (setq retval safe-return)))
+         retval)))
 
 (provide 'nacho-logging)
 

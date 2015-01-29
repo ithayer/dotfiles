@@ -21,13 +21,13 @@
   (let ((proc (start-process-shell-command name buf cmd)))
     (with-current-buffer (process-buffer proc)
       (make-local-variable 'proc--cb)
-      (setq proc--cb cb))
+      (setq proc--cb cb)
+      (erase-buffer))
     (set-process-sentinel proc 'proc/handle-sentinel)
     (when (and region-start
                region-end)
       (progn (process-send-region proc region-start region-end)
              (process-send-eof proc)))))
-
 
 ;;(proc/run "ls" "*ls*" "ls -l /bin" (lambda (x) (print-it x)))
 
