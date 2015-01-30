@@ -1,0 +1,7 @@
+! free up right-Alt for remapping
+remove mod1 = Alt_R
+
+! Right-Alt remapped to Super
+clear mod5
+keycode 108 = Hyper_R
+add mod5 = Hyper_R
