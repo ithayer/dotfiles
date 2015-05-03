@@ -91,6 +91,13 @@
 (require 'expand-region)
 (global-set-key (kbd "H-r") 'er/expand-region)
 
+(global-set-key (kbd "A-H-R") '(lambda () (interactive)
+                                 (message (format "Reverting from: %s" buffer-file-name))
+                                 (revert-buffer nil t)))
+
+(global-set-key (kbd "H-m") 'mc/mark-all-dwim)
+
+
 ;; Occur mode?
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -196,12 +203,11 @@
 ;; Magit
 
 (define-key osx-key-mode-map (kbd "A-g") nil) ;; A-g did repeat-last-isearch on this map, not that useful.
-(define-key osx-key-mode-map (kbd "A-S-g") nil)
-(define-key osx-key-mode-map (kbd "A-t") nil) ;; Always hitting this by accident, opening a new tab.
 (global-set-key (kbd "A-g") 'magit-status)
-(global-set-key (kbd "A-S-g") 'goto-line)
-(global-set-key (kbd "M-o") 'magit-checkout)
-
+(define-key osx-key-mode-map (kbd "A-G") nil) ;; A-g did repeat-last-isearch on this map, not that useful.
+(global-set-key (kbd "A-G") '(lambda ()
+                               (interactive)
+                               (magit-status "/Users/ignaciothayer/p/debtapp")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;'
 ;; FFIG
