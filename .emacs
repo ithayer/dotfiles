@@ -1,17 +1,9 @@
 (add-to-list 'load-path "/Users/ignaciothayer/.emacs.d/")
 
-(custom-set-faces
-  ;; custom-set-faces was added by Custom.
-  ;; If you edit it by hand, you could mess it up, so be careful.
-  ;; Your init file should contain only one such instance.
-  ;; If there is more than one, they won't work right.
- '(default ((t (:stipple nil :background "grey20" :foreground "white" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :width normal :height 107))))
- '(cursor ((t (:background "white"))))
- '(font-lock-constant-face ((((class color) (min-colors 88) (background dark)) (:foreground "red" :weight bold)))))
-
 (global-set-key (kbd "C-x C-c") (lambda () (interactive) (message "Quick exit disabled, try M-x kill-emacs")))
 
 (add-hook 'shell-mode-hook 'ansi-color-for-comint-mode-on)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Small Visual Stuff
@@ -58,14 +50,35 @@
 (define-key osx-key-mode-map (kbd "A-}") nil)
 (global-set-key (kbd "A-}") 'next-multiframe-window)
 
+
+(define-key osx-key-mode-map (kbd "A-p") nil) ;; Remove print binding
+
 ;; Set Fn to be hyper
 (setq ns-function-modifier 'hyper)
 
-(global-set-key [insert] 'copy-region-as-kill)
-(global-set-key [C-insert] 'yank)
-
 (global-set-key (kbd "C-M-<up>") '(lambda () (interactive) (scroll-down 1)))
 (global-set-key (kbd "C-M-<down>") '(lambda () (interactive) (scroll-up 1)))
+(global-set-key (kbd "C-A-N") '(lambda ()
+                                 (interactive)
+                                 (aquamacs-next-line)
+                                 (aquamacs-next-line)
+                                 (aquamacs-next-line)
+                                 (aquamacs-next-line)
+                                 (aquamacs-next-line)
+                                 (aquamacs-next-line)
+                                 (aquamacs-next-line)
+                                 (aquamacs-next-line)))
+(global-set-key (kbd "C-A-P") '(lambda ()
+                                 (interactive)
+                                 (aquamacs-previous-line)
+                                 (aquamacs-previous-line)
+                                 (aquamacs-previous-line)
+                                 (aquamacs-previous-line)
+                                 (aquamacs-previous-line)
+                                 (aquamacs-previous-line)
+                                 (aquamacs-previous-line)
+                                 (aquamacs-previous-line)))
+
 
 (global-set-key (kbd "<f1>") '(lambda ()
                                 (interactive)
@@ -85,8 +98,12 @@
                                   (line-end-position)))))
 
 (global-set-key (kbd "H-g") 'goto-line)
-(global-set-key (kbd "H-d") '(lambda () (interactive)
-                                    (find-file "~/org/daily.org")))
+
+;; Keys for buffers
+(global-set-key (kbd "H-b d") '(lambda () (interactive)
+                                 (find-file "~/org/daily.org")))
+(global-set-key (kbd "H-b r") '(lambda () (interactive)
+                                 (switch-to-buffer-here "*cider-repl app*")))
 
 (require 'expand-region)
 (global-set-key (kbd "H-r") 'er/expand-region)
@@ -95,10 +112,11 @@
                                  (message (format "Reverting from: %s" buffer-file-name))
                                  (revert-buffer nil t)))
 
+(require 'multiple-cursors)
 (global-set-key (kbd "H-m") 'mc/mark-all-dwim)
 
-
 ;; Occur mode?
+;; C-c C-h -- brings up help for prefix map
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Indent
@@ -109,14 +127,26 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Paredit
 
+(require 'paredit)
+
 (eval-after-load 'paredit
   '(progn
-     (define-key paredit-mode-map (kbd "<C-S-]>") 'paredit-forward-barf-sexp)
-     (define-key paredit-mode-map (kbd "<C-S-[>") 'paredit-forward-slurp-sexp)
+     (define-key paredit-mode-map (kbd "<C-}>") 'paredit-forward-barf-sexp)
+     (define-key paredit-mode-map (kbd "<C-{>") 'paredit-forward-slurp-sexp)
      (define-key paredit-mode-map (kbd "<C-left>") 'backward-word)
      (define-key paredit-mode-map (kbd "<C-right>") 'forward-word)
      (define-key paredit-mode-map (kbd "C-<") 'backward-sexp)
-     (define-key paredit-mode-map (kbd "C->") 'forward-sexp)))
+     (define-key paredit-mode-map (kbd "C->") 'forward-sexp)
+     ))
+
+;; Make m-backspace not do backward kill word because that screws up balanced parens.
+(define-key paredit-mode-map (kbd "<M-backspace>") 'paredit-backward-kill-word)
+(define-key paredit-mode-map (kbd "H-p") 'paredit-splice-sexp-killing-backward)
+
+;; old
+;; (defhydra hydra-paredit (paredit-mode-map "H-p")
+;;   "Paredit"
+;;   ("s" paredit-splice-sexp-killing-backward "slice"))
 
 (add-hook 'emacs-lisp-mode-hook 'enable-paredit-mode)
 (add-hook 'cider-mode-hook 'enable-paredit-mode)
@@ -131,6 +161,15 @@
 (setq org-log-done t)
 (setq org-agenda-files '("~/org"))
 
+(setq org-todo-keyword-faces
+           '(("TODO" . org-warning) ("STARTED" . (:foreground "black" :background "green"))
+             ("BLOCKED" . (:foreground "red"))
+             ("DONE" . org-done)))
+
+(require 'org)
+;; Have + act as a "censored" mode -- doesn't show unless it's on the current line (with line highlight mode).
+(add-to-list 'org-emphasis-alist '("+" (:background "gray" :foreground "gray")))
+
 ;;
 ;; ace jump mode major function
 ;; 
@@ -141,7 +180,7 @@
   "Emacs quick move minor mode"
   t)
 ;; you can select the key you prefer to
-(define-key global-map (kbd "H-a") 'ace-jump-char-mode)
+(define-key global-map (kbd "H-.") 'ace-jump-char-mode)
 ;; 
 ;; enable a more powerful jump back function from ace jump mode
 ;;
@@ -152,8 +191,9 @@
   t)
 (eval-after-load "ace-jump-mode"
   '(ace-jump-mode-enable-mark-sync))
-(define-key global-map (kbd "H-M-a") 'ace-jump-mode-pop-mark)
+(define-key global-map (kbd "H->") 'ace-jump-mode-pop-mark)
 
+(setq ace-jump-mode-move-keys '(?q ?w ?e ?r ?t ?a ?s ?d ?f ?g ?z ?x ?c ?v ?b))
 
 ;; ns-right-command-modifier
 
@@ -199,21 +239,45 @@
 (setq ido-enable-flex-matching t)
 (setq ido-create-new-buffer 'always)
 
+(require 'ido-vertical-mode)
+(ido-vertical-mode 1)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Magit
 
 (define-key osx-key-mode-map (kbd "A-g") nil) ;; A-g did repeat-last-isearch on this map, not that useful.
 (global-set-key (kbd "A-g") 'magit-status)
 (define-key osx-key-mode-map (kbd "A-G") nil) ;; A-g did repeat-last-isearch on this map, not that useful.
+
 (global-set-key (kbd "A-G") '(lambda ()
+                                 (interactive)
+                                 (let ((default-directory "/Users/ignaciothayer/p/debtapp/"))
+                                   (magit-status))))
+(global-set-key (kbd "A-A") '(lambda ()
                                (interactive)
-                               (magit-status "/Users/ignaciothayer/p/debtapp")))
+                               (let ((default-directory "/Users/ignaciothayer/p/avant-basic"))
+                                 (magit-status))))
+
+(setq git-commit-summary-max-length 80)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;'
 ;; FFIG
 
 (require 'find-file-in-git-repo)
-(global-set-key (kbd "<f5>") 'find-file-in-git-repo)
+(global-set-key (kbd "H-f d")
+                '(lambda ()
+                   (interactive)
+                   (let ((default-directory "/Users/ignaciothayer/p/debtapp/"))
+                     (find-file-in-git-repo))))
+(global-set-key (kbd "H-f a")
+                '(lambda ()
+                   (interactive)
+                   (let ((default-directory "/Users/ignaciothayer/p/avant-basic/"))
+                     (find-file-in-git-repo))))
+(global-set-key (kbd "H-f g")
+                '(lambda ()
+                   (interactive)
+                   (find-file-in-git-repo)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; RFZ Search
@@ -229,3 +293,52 @@
 
 (global-set-key (kbd "C-7") 'rfzsearch-with-symbol-at-point)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Avant Search
+
+(defun as (x)
+  (interactive "savant-search: ")
+  (grep (format "%s %s" "/Users/ignaciothayer/bin/avantsearch" x)))
+
+(defun avantsearch-with-symbol-at-point ()
+  (interactive)
+  (grep (format "%s %s" "/Users/ignaciothayer/bin/avantsearch" (symbol-at-point))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; LookML mode
+      
+(add-to-list 'auto-mode-alist '("\\.lookml\\'" . yaml-mode))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Yasnippet
+
+(add-to-list 'load-path "~/.emacs.d/plugins/yasnippet")
+(require 'yasnippet) ;; not yasnippet-bundle
+(yas/initialize)
+(yas/load-directory "~/.emacs.d/plugins/yasnippet/snippets")
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Censoring
+
+(defvar censor-face
+  '(:foreground "black" :background "black")
+  "Face to use for censoring")
+ 
+(defun censor ()
+  "Censor the current region"
+  (interactive)
+  (let ((overlay (make-overlay (region-beginning) (region-end))))
+        (overlay-put overlay 'face censor-face)))
+ 
+(defun censor-remove ()
+  "Uncensor the current region"
+  (interactive)
+  (remove-overlays (region-beginning) (region-end) 'face censor-face))
+
+;; DEMO
+;;(define-key paredit-mode-map (kbd "<M-backspace>") 'paredit-backward-kill-word)
+;;(define-key paredit-mode-map (kbd "<M-backspace>") nil)
+
+;; There's also stuff in customizations.el
