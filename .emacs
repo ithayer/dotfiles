@@ -1,4 +1,8 @@
+;; More customizations in
+;; /Users/ignaciothayer/Library/Preferences/Aquamacs Emacs/customizations.el
+
 (add-to-list 'load-path "/Users/ignaciothayer/.emacs.d/")
+(add-to-list 'load-path "/Users/ignaciothayer/.emacs.d/vendor/emacs-pry")
 
 (global-set-key (kbd "C-x C-c") (lambda () (interactive) (message "Quick exit disabled, try M-x kill-emacs")))
 
@@ -115,7 +119,9 @@
 (require 'multiple-cursors)
 (global-set-key (kbd "H-m") 'mc/mark-all-dwim)
 
-;; Occur mode?
+;; Occur mode
+(global-set-key (kbd "H-o") 'occur)
+
 ;; C-c C-h -- brings up help for prefix map
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -167,6 +173,17 @@
              ("DONE" . org-done)))
 
 (require 'org)
+
+(define-key org-mode-map (kbd "H-t") (lambda ()
+                                       (interactive)
+                                       (org-todo)))
+
+(define-key org-mode-map (kbd "H-y") (lambda ()
+                                       (interactive)
+                                       (org-archive-subtree)))
+
+(setq-default org-download-image-dir "~/org/images")
+
 ;; Have + act as a "censored" mode -- doesn't show unless it's on the current line (with line highlight mode).
 (add-to-list 'org-emphasis-alist '("+" (:background "gray" :foreground "gray")))
 
@@ -260,6 +277,19 @@
 
 (setq git-commit-summary-max-length 80)
 
+(defun create-branch-and-push-origin (branch start-point)
+  (message (format "Creating branch '%s' from '%s'" branch start-point))
+  (magit-branch-and-checkout branch start-point)
+  (message (format "Pushing '%s'" branch))
+  (magit-run-git-no-revert "push" "-v" "origin" branch)
+  (let ((upstream (format "remotes/origin/%s" branch)))
+    (message (format "Setting upstream to '%s'" upstream))
+    (magit-branch-set-upstream branch upstream)))
+
+(defun magit-create-branch-from-master (branch-name)
+  (interactive "sNew branch name: ")
+  (create-branch-and-push-origin branch-name "master"))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;'
 ;; FFIG
 
@@ -278,6 +308,21 @@
                 '(lambda ()
                    (interactive)
                    (find-file-in-git-repo)))
+
+;; Find file in p/
+
+(global-set-key (kbd "H-f p")
+                '(lambda ()
+                   (interactive)
+                   (let* ((default-directory "/Users/ignaciothayer/p/")
+                          (files (shell-command-to-string (format "cd %s && find avant-basic avant avant-analytics" default-directory))))
+                     (find-file
+                      (concat default-directory
+                              (ido-completing-read
+                               "find in avant repos below p/: "
+                               (remove-if (lambda (x) (string= "" x))
+                                          (split-string files "\n"))))))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; RFZ Search
@@ -298,7 +343,11 @@
 
 (defun as (x)
   (interactive "savant-search: ")
-  (grep (format "%s %s" "/Users/ignaciothayer/bin/avantsearch" x)))
+  (grep (format "%s '%s'" "/Users/ignaciothayer/bin/avantsearch" x)))
+
+(global-set-key (kbd "H-A") '(lambda (s)
+                               (interactive "sFind RE in avant repos: ")
+                               (as s)))
 
 (defun avantsearch-with-symbol-at-point ()
   (interactive)
@@ -336,6 +385,121 @@
   "Uncensor the current region"
   (interactive)
   (remove-overlays (region-beginning) (region-end) 'face censor-face))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Ruby stuff
+
+(require 'rvm)
+(rvm-use-default)
+
+(require 'pry)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Ag
+
+;; Search with ag in all of p.
+(defun ag-p-regexp (regexp)
+  (interactive (list (ag/read-from-minibuffer "Search regexp in p/")))
+  (ag/search regexp (ag/project-root "/Users/ignaciothayer/p") :regexp t))
+
+(global-set-key (kbd "H-a") '(lambda (s)
+                               (interactive
+                                (list
+                                 (read-string
+                                  (format "Find RE in project (%s): "
+                                          (thing-at-point 'symbol))
+                                  nil nil (thing-at-point 'symbol))))
+                               (ag-project-regexp s)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; SmartParens
+
+(require 'smartparens-config)
+(require 'smartparens-ruby)
+(smartparens-global-mode)
+(show-smartparens-global-mode t)
+(sp-with-modes '(rhtml-mode)
+  (sp-local-pair "<" ">")
+  (sp-local-pair "<%" "%>"))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Enh-ruby
+
+(autoload 'enh-ruby-mode "enh-ruby-mode" "Major mode for ruby files" t)
+(add-to-list 'auto-mode-alist '("\\.rb$" . enh-ruby-mode))
+(add-to-list 'interpreter-mode-alist '("ruby" . enh-ruby-mode))
+
+(add-hook 'enh-ruby-mode-hook 'enable-paredit-mode)
+
+(eval-after-load "enh-ruby-mode"
+  '(add-to-list 'hs-special-modes-alist
+                 `(enh-ruby-mode
+                   ,(rx (or "def" "class" "module" "{" "[")) ; Block start
+                   ,(rx (or "}" "]" "end"))                  ; Block end
+                   ,(rx (or "#" "=begin"))                   ; Comment start
+                   enh-ruby-forward-sexp nil)))
+
+(eval-after-load "enh-ruby-mode"
+  '(progn (define-key enh-ruby-mode-map (kbd "C-<") 'enh-ruby-backward-sexp)
+          (define-key enh-ruby-mode-map (kbd "C->") 'enh-ruby-forward-sexp)
+          (define-key enh-ruby-mode-map (kbd "C-?") 'enh-ruby-up-sexp)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; python
+;;(require 'ipython)
+;; Didn't work the first time -- buffer local?
+;;(setq py-python-command-args '("--colors=linux"))
+(setq
+ python-shell-interpreter "ipython"
+ python-shell-interpreter-args "--colors Linux --autoindent"
+ python-shell-prompt-regexp "In \\[[0-9]+\\]: "
+ python-shell-prompt-output-regexp "Out\\[[0-9]+\\]: "
+ python-shell-completion-setup-code
+   "from IPython.core.completerlib import module_completion"
+ python-shell-completion-module-string-code
+   "';'.join(module_completion('''%s'''))\n"
+ python-shell-completion-string-code
+   "';'.join(get_ipython().Completer.all_completions('''%s'''))\n")
+
+(require 'python-mode)
+(require 'company)
+(define-key python-mode-map (kbd "H-p l") (lambda ()
+                                            (interactive)
+                                            (py-execute-line)))
+(define-key python-mode-map (kbd "H-p p") (lambda ()
+                                            (interactive)
+                                            (py-execute-block)))
+(define-key python-mode-map (kbd "H-p g") (lambda ()
+                                            (interactive)
+                                            (jedi:goto-definition)))
+(define-key python-mode-map (kbd "H-x") (lambda ()
+                                            (interactive)
+                                            (py-execute-def-or-class)))
+(add-hook 'python-mode-hook 'company-mode)
+(add-hook 'python-mode-hook 'jedi:setup)
+(add-to-list 'company-backends 'company-jedi)
+
+(with-eval-after-load 'company
+  (define-key company-active-map (kbd "M-n") nil)
+  (define-key company-active-map (kbd "M-p") nil)
+  (define-key company-active-map (kbd "C-n") #'company-select-next)
+  (define-key company-active-map (kbd "C-p") #'company-select-previous))
+
+(defun paredit-space-for-delimiter-predicates-python (endp delimiter)
+  "Check for python"
+  nil)
+
+(defun python-mode-paredit-hook ()
+  (enable-paredit-mode)
+  (add-to-list (make-local-variable 'paredit-space-for-delimiter-predicates)
+               'paredit-space-for-delimiter-predicates-python))
+
+(add-hook 'python-mode-hook 'python-mode-paredit-hook)
+
+
+;;(add-hook 'python-mode 'elpy-mode)
+;;(require 'company-jedi) ;; TESTING
+;;(require 'autocomplete)
 
 ;; DEMO
 ;;(define-key paredit-mode-map (kbd "<M-backspace>") 'paredit-backward-kill-word)
